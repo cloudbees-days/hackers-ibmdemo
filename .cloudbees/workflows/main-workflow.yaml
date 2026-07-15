@@ -13,7 +13,16 @@ permissions:
 jobs:
   test:
     steps:
-      - name: Run Jenkins Job
+      - name: Run Jenkins Job 1
+        kind: test
+        uses: cloudbees-io/jenkins-run-job@v2
+        continue-on-error: true
+        with:
+          url: https://sda.preview.cb-demos.io/westest/
+          username: ${{ secrets.WES_JENKINS_USERNAME }}
+          token: ${{ secrets.WES_JENKINS_TOKEN }}
+          job-name: WesTestMB
+      - name: Run Jenkins Job 2
         kind: test
         uses: cloudbees-io/jenkins-run-job@v2
         continue-on-error: true
@@ -22,18 +31,6 @@ jobs:
           username: ${{ secrets.WES_JENKINS_USERNAME }}
           token: ${{ secrets.WES_JENKINS_TOKEN }}
           job-name: WesTestJob
-      - name: Run GHA Workflow
-        kind: test
-        uses: cloudbees-io/ghactions-run-workflow@v2
-        continue-on-error: true
-        with:
-          token: ${{ secrets.WES_GH_TOKEN }}
-          org-name: cloudbees-days
-          repo-name: hackers-ibmdemo
-          branch-name: main
-          workflow-name: test-and-build-image2
-          test-type: JUnit
-          test-result-location: junit.xml
       - name: Get source code
         uses: cloudbees-io/checkout@v1
         continue-on-error: true
