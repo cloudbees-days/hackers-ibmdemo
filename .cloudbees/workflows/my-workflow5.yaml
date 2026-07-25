@@ -6,15 +6,6 @@ on:
     branches:
       - "**"
 jobs:
-  deploy-uat:
-    steps:
-      - name: Say hello
-        run: |
-          echo "hello world"
-        uses: docker://golang:1.20.3-alpine3.17
-        shell: sh
-    needs:
-      - approve-uat-deployment
   compile-test:
     steps:
       - name: compile
@@ -43,3 +34,12 @@ jobs:
       disallowLaunchByUser: false
       approvers: 5db39244-5a80-11f0-8d6a-42010a83ae57
       notifyAllEligibleUsers: false
+  deploy-uat:
+    steps:
+      - name: Say hello
+        run: |
+          echo "hello world"
+        uses: docker://golang:1.20.3-alpine3.17
+        shell: sh
+    needs:
+      - approve-uat-deployment
