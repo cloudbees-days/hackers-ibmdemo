@@ -101,11 +101,35 @@ jobs:
       approvers: 5db39244-5a80-11f0-8d6a-42010a83ae57
       notifyAllEligibleUsers: false
   deploy-uat:
+    environment: DOW UAT
     steps:
-      - name: Say hello
-        run: |
-          echo "hello world"
-        uses: docker://golang:1.20.3-alpine3.17
-        shell: sh
+      - name: Checkout
+        uses: cloudbees-io/checkout@v1
+      - uses: cashokannamalai/kubeconfig@v1
+        name: Set kubeconfig
+        with:
+          secname: ${{ secrets.kubeconfig }}
+      - name: Deploy to cluster
+        uses: cloudbees-io/kustomize-deploy@v1
+        kind: deploy
+        with:
+          kustomization-base-dir: ${{ cloudbees.workspace }}/k8s/base
+          kustomization-overlays-dir: ${{ cloudbees.workspace }}/k8s/overlays/prod
+          environment-variables: "{}"
+      - name: Publish evidence
+        uses: cloudbees-io/publish-evidence-item@v1
+        with:
+          content: |-
+            ## Deployed environment
+            [Production frontend](https://hackers-organized-prod.preview.cb-demos.io/)
+
+            Running hackers-organized:${{ cloudbees.scm.sha }}
+            **Artifact ID:** ${{ needs.build-container-image.outputs.ARTIFACT_ID }}
+          format: MARKDOWN
+      - name: Register deployed artifact
+        uses: cloudbees-io/register-deployed-artifact@v2
+        with:
+          artifact-id: ${{ needs.build-container-image.outputs.ARTIFACT_ID }}
+          target-environment: "DOW Production"
     needs:
       - approve-uat-deployment
