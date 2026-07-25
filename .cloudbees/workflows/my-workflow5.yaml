@@ -1,0 +1,45 @@
+apiVersion: automation.cloudbees.io/v1alpha1
+kind: workflow
+name: My workflow
+on:
+  push:
+    branches:
+      - "**"
+jobs:
+  deploy-uat:
+    steps:
+      - name: Say hello
+        run: |
+          echo "hello world"
+        uses: docker://golang:1.20.3-alpine3.17
+        shell: sh
+    needs:
+      - approve-uat-deployment
+  compile-test:
+    steps:
+      - name: compile
+        uses: cloudbees-io/checkout@v1
+        run: ""
+        kind: build
+        env: {}
+        with: {}
+        shell: ""
+  build-image:
+    steps:
+      - name: ""
+        uses: cloudbees-io/checkout@v1
+        run: ""
+        kind: build
+        env: {}
+        with: {}
+        shell: ""
+    needs: compile-test
+  approve-uat-deployment:
+    needs: build-image
+    timeout-minutes: 4320
+    delegates: cloudbees-io/manual-approval/custom-job.yml@v1
+    with:
+      instructions: ""
+      disallowLaunchByUser: false
+      approvers: 5db39244-5a80-11f0-8d6a-42010a83ae57
+      notifyAllEligibleUsers: false
