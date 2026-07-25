@@ -52,27 +52,27 @@ jobs:
       CODE_COVERAGE: ${{ steps.RunUnitTest.outputs.CODE_COVERAGE }}
   build-container-image:
     steps:
-      - uses: cloudbees-io/checkout@v1
-        name: Get source code
+      - name: Get source code
         kind: build
+        uses: cloudbees-io/checkout@v1
         continue-on-error: true
-      - uses: cloudbees-io/configure-oci-credentials@v1
-        name: Configure container registry credentials
+      - name: Configure container registry credentials
+        uses: cloudbees-io/configure-oci-credentials@v1
         continue-on-error: true
         id: dockerconfig
         with:
           registry: https://index.docker.io/v1/
           username: ${{ secrets.DOCKERHUB_USER }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-      - uses: cloudbees-io/kaniko@v1
-        name: Build container image
+      - name: Build container image
         kind: build
+        uses: cloudbees-io/kaniko@v1
         with:
           destination: ${{ secrets.DOCKERHUB_USER }}/hackers-organized:${{ cloudbees.scm.sha }}
           tar-path: container-image.tar
           build-args: BUILDKIT_CONTEXT_KEEP_GIT_DIR=1,BUILDKIT_INLINE_CACHE=1
-      - uses: cloudbees-io/asset-chain-utils-preprod/upload-binary@v1
-        name: Upload binary from container build
+      - name: Upload binary from container build
+        uses: cloudbees-io/asset-chain-utils-preprod/upload-binary@v1
         id: upload-binary
         with:
           file-path: container-image.tar
@@ -82,9 +82,9 @@ jobs:
         id: register-artifact
         uses: cloudbees-io/register-build-artifact@v2
         with:
-          name: ldonleycb/hackers-organized
           version: ${{ cloudbees.scm.sha }}
           url: ${{ secrets.DOCKERHUB_USER }}/hackers-organized:${{ cloudbees.scm.sha }}
+          name: ldonleycb/hackers-organized
       - name: Publish evidence
         uses: cloudbees-io/publish-evidence-item@v1
         with:
@@ -96,23 +96,22 @@ jobs:
             **Artifact ID:** ${{ steps.register-artifact.outputs.artifact-id }}
             **Image:** hackers-organized:${{ cloudbees.scm.sha }}
           format: MARKDOWN
+    needs:
+      - CompileAndTest
     outputs:
       ARTIFACT_ID: ${{ steps.register-artifact.outputs.artifact-id }}
-    needs:
-      - test
-      - CompileAndTest
   deploy:
     environment: DOW Production
     steps:
       - name: Checkout
         uses: cloudbees-io/checkout@v1
-      - uses: cashokannamalai/kubeconfig@v1
-        name: Set kubeconfig
+      - name: Set kubeconfig
+        uses: cashokannamalai/kubeconfig@v1
         with:
           secname: ${{ secrets.kubeconfig }}
       - name: Deploy to cluster
-        uses: cloudbees-io/kustomize-deploy@v1
         kind: deploy
+        uses: cloudbees-io/kustomize-deploy@v1
         with:
           kustomization-base-dir: ${{ cloudbees.workspace }}/k8s/base
           kustomization-overlays-dir: ${{ cloudbees.workspace }}/k8s/overlays/prod
@@ -133,7 +132,6 @@ jobs:
           artifact-id: ${{ needs.build-container-image.outputs.ARTIFACT_ID }}
           target-environment: DOW Production
     needs:
-      - scan
       - approveuatdeployment
   approveuatdeployment:
     needs: build-container-image
