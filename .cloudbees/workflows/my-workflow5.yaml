@@ -100,6 +100,18 @@ jobs:
       disallowLaunchByUser: false
       approvers: 5db39244-5a80-11f0-8d6a-42010a83ae57
       notifyAllEligibleUsers: false
+  publish-approval-evidence:
+    needs: approve-uat-deployment
+    steps:
+      - name: Publish approval evidence
+        uses: cloudbees-io/publish-evidence-item@v1
+        with:
+          content: |-
+            ## UAT deployment approval
+
+            **Approver(s) configured:** Yee Kee Martin Lee (klee@cloudbees.com)
+            **Commit:** ${{ cloudbees.scm.sha }}
+          format: MARKDOWN
   deploy-uat:
     environment: DOW UAT
     steps:
