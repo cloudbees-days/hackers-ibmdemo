@@ -43,7 +43,6 @@ jobs:
     outputs:
       CODE_COVERAGE: ${{ steps.RunUnitTest.outputs.CODE_COVERAGE }}
   build-image:
-    environment: DOW SIT
     steps:
       - name: Get source code
         kind: build
@@ -89,6 +88,13 @@ jobs:
             **Artifact ID:** ${{ steps.register-artifact.outputs.artifact-id }}
             **Image:** hackers-organized:${{ cloudbees.scm.sha }}
           format: MARKDOWN
+    needs: compile-test
+    outputs:
+      ARTIFACT_ID: ${{ steps.register-artifact.outputs.artifact-id }}
+  deploy-sit : 
+    needs: build-image
+    environment: DOW SIT
+    steps:
       - name: Checkout
         uses: cloudbees-io/checkout@v1
       - uses: cashokannamalai/kubeconfig@v1
@@ -118,11 +124,8 @@ jobs:
         with:
           artifact-id: ${{ needs.build-image.outputs.ARTIFACT_ID }}
           target-environment: DOW SIT
-    needs: compile-test
-    outputs:
-      ARTIFACT_ID: ${{ steps.register-artifact.outputs.artifact-id }}
   approve-uat-deployment:
-    needs: build-image
+    needs: deploy-sit
     timeout-minutes: 4320
     delegates: cloudbees-io/manual-approval/custom-job.yml@v1
     with:
