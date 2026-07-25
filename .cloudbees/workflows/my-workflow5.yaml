@@ -124,12 +124,12 @@ jobs:
             [Production frontend](https://hackers-organized-prod.preview.cb-demos.io/)
 
             Running hackers-organized:${{ cloudbees.scm.sha }}
-            **Artifact ID:** ${{ needs.build-container-image.outputs.ARTIFACT_ID }}
+            **Artifact ID:** ${{ needs.build-image.outputs.ARTIFACT_ID }}
           format: MARKDOWN
       - name: Register deployed artifact
         uses: cloudbees-io/register-deployed-artifact@v2
         with:
           artifact-id: ${{ needs.build-container-image.outputs.ARTIFACT_ID }}
-          target-environment: "DOW Production"
+          target-environment: "DOW UAT"
     needs:
       - approve-uat-deployment
