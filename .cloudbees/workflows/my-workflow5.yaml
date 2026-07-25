@@ -133,3 +133,4 @@ jobs:
           target-environment: "DOW UAT"
     needs:
       - approve-uat-deployment
+      - build-image
