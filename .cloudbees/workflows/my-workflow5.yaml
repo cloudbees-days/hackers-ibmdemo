@@ -110,12 +110,13 @@ jobs:
         with:
           secname: ${{ secrets.kubeconfig }}
       - name: Deploy to cluster
-        uses: cloudbees-io/kustomize-deploy@v1
-        kind: deploy
+        uses: cloudbees-io/jenkins-run-job@v2
+        continue-on-error: true
         with:
-          kustomization-base-dir: ${{ cloudbees.workspace }}/k8s/base
-          kustomization-overlays-dir: ${{ cloudbees.workspace }}/k8s/overlays/prod
-          environment-variables: "{}"
+          url: https://sda.preview.cb-demos.io/westest/
+          username: ${{ secrets.WES_JENKINS_USERNAME }}
+          token: ${{ secrets.WES_JENKINS_TOKEN }}
+          job-name: WesTestJob2
       - name: Publish evidence
         uses: cloudbees-io/publish-evidence-item@v1
         with:
