@@ -89,8 +89,35 @@ jobs:
             **Artifact ID:** ${{ steps.register-artifact.outputs.artifact-id }}
             **Image:** hackers-organized:${{ cloudbees.scm.sha }}
           format: MARKDOWN
-      - name: Deploy SIT
+      - name: Checkout
         uses: cloudbees-io/checkout@v1
+      - uses: cashokannamalai/kubeconfig@v1
+        name: Set kubeconfig
+        with:
+          secname: ${{ secrets.kubeconfig }}
+      - name: Deploy to SIT cluster
+        uses: cloudbees-io/jenkins-run-job@v2
+        continue-on-error: true
+        with:
+          url: https://sda.preview.cb-demos.io/westest/
+          username: ${{ secrets.WES_JENKINS_USERNAME }}
+          token: ${{ secrets.WES_JENKINS_TOKEN }}
+          job-name: WesTestJob2
+      - name: Publish evidence
+        uses: cloudbees-io/publish-evidence-item@v1
+        with: 
+          content: |-
+            ## Deployed environment
+            [SIT frontend](https://hackers.hackers-staging.preview.cb-demos.io/)
+
+            Running hackers-organized:${{ cloudbees.scm.sha }}
+            **Artifact ID:** ${{ needs.build-image.outputs.ARTIFACT_ID }}
+          format: MARKDOWN
+      - name: Register deployed artifact
+        uses: cloudbees-io/register-deployed-artifact@v2
+        with:
+          artifact-id: ${{ needs.build-image.outputs.ARTIFACT_ID }}
+          target-environment: DOW SIT
     needs: compile-test
     outputs:
       ARTIFACT_ID: ${{ steps.register-artifact.outputs.artifact-id }}
@@ -122,7 +149,7 @@ jobs:
           job-name: WesTestJob3
       - name: Publish evidence
         uses: cloudbees-io/publish-evidence-item@v1
-        with:
+        with: 
           content: |-
             ## Deployed environment
             [UAT frontend](https://hackers.hackers-qa.preview.cb-demos.io/)
