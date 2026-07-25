@@ -122,7 +122,7 @@ jobs:
         with:
           content: |-
             ## Deployed environment
-            [Production frontend](https://hackers-organized-prod.preview.cb-demos.io/)
+            [UAT frontend](https://hackers-organized-prod.preview.cb-demos.io/)
 
             Running hackers-organized:${{ cloudbees.scm.sha }}
             **Artifact ID:** ${{ needs.build-image.outputs.ARTIFACT_ID }}
