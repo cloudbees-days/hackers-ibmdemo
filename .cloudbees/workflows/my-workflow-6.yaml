@@ -18,9 +18,9 @@ jobs:
           id: get-issues
           name: Get Jira Tickets
           with:
-            jira-url: ${{ secrets.JIRA_URL }}
-            jira-username: ${{ secrets.JIRA_USERNAME }}
-            jira-token: ${{ secrets.JIRA_TOKEN }}
+            jira-url: ${{ secrets.WES_JIRA_URL }}
+            jira-username: ${{ secrets.WES_JIRA_USERNAME }}
+            jira-token: ${{ secrets.WES_JIRA_TOKEN }}
             jql: project = "UDEMO" AND status != "Done" ORDER BY created DESC
             fields: summary,status,assignee,created
             max-results: "20"
