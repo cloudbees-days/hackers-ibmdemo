@@ -14,13 +14,13 @@ jobs:
         total: ${{ steps.get-issues.outputs.total }}
         issues-table: ${{ steps.format-issues.outputs.issues-table }}
       steps:
-        - uses: https://github.com/cloudbees-days/jira-get-issues
+        - uses: https://github.com/cloudbees-days/jira-get-issues@v1
           id: get-issues
           name: Get Jira Tickets
           with:
-            jira-url: ${{ secrets.WES_JIRA_BASE_URL }}
-            jira-username: ${{ secrets.WES_JIRA_USER_EMAIL }}
-            jira-token: ${{ secrets.WES_JIRA_API_TOKEN }}
+            jira-url: ${{ secrets.JIRA_URL }}
+            jira-username: ${{ secrets.JIRA_USERNAME }}
+            jira-token: ${{ secrets.JIRA_TOKEN }}
             jql: project = "UDEMO" AND status != "Done" ORDER BY created DESC
             fields: summary,status,assignee,created
             max-results: "20"
