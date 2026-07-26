@@ -1,0 +1,69 @@
+apiVersion: automation.cloudbees.io/v1alpha1
+kind: workflow
+name: My workflow 6
+
+on:
+  push:
+    branches:
+      - '**'
+
+jobs:
+    gather-evidence:
+      outputs:
+        issues: ${{ steps.get-issues.outputs.issues }}
+        total: ${{ steps.get-issues.outputs.total }}
+        issues-table: ${{ steps.format-issues.outputs.issues-table }}
+      steps:
+        - uses: https://github.com/cloudbees-days/jira-get-issues
+          id: get-issues
+          name: Get Jira Tickets
+          with:
+            jira-url: ${{ secrets.JIRA_URL }}
+            jira-username: ${{ secrets.JIRA_USERNAME }}
+            jira-token: ${{ secrets.JIRA_TOKEN }}
+            jql: project = "UDEMO" AND status != "Done" ORDER BY created DESC
+            fields: summary,status,assignee,created
+            max-results: "20"
+        - name: Format issues as table
+          uses: docker://alpine:3.19
+          id: format-issues
+          run: >
+            # Install jq for JSON parsing
+
+            apk add --no-cache jq
+
+
+            # Create markdown table from JSON
+
+            echo 'issues-table<<EOF' >> $CLOUDBEES_OUTPUTS/issues-table
+
+            echo '| Key | Summary | Status | Priority |' >>
+            $CLOUDBEES_OUTPUTS/issues-table
+
+            echo '|-----|---------|--------|----------|' >>
+            $CLOUDBEES_OUTPUTS/issues-table
+
+
+            # Parse JSON and format as table rows
+
+            echo '${{ steps.get-issues.outputs.issues }}' | jq -r '.[] |
+              "| " + .key + " | " + .fields.summary + " | " + .fields.status.name + " | " + .fields.priority.name + " |"' >> $CLOUDBEES_OUTPUTS/issues-table
+
+            echo 'EOF' >> $CLOUDBEES_OUTPUTS/issues-table
+        - name: Report evidence
+          uses: cloudbees-io/publish-evidence-item@v1
+          with:
+            content: |
+              # Evidence report
+              ## Release Issue
+              ${{ needs.create-release-issue.outputs.issue-key }}
+              ${{ needs.create-release-issue.outputs.issue-url }}
+
+              ## Jira Tickets
+              ${{ steps.format-issues.outputs.issues-table }}
+
+              ## Repositories
+              ${{ steps.checkout-hackers-web.outputs.commit-url}}
+              ${{ steps.checkout-hackers-auth.outputs.commit-url}}
+              ${{ steps.checkout-hackers-api.outputs.commit-url}}
+            format: MARKDOWN
