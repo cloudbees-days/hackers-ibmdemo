@@ -62,8 +62,4 @@ jobs:
               ## Jira Tickets
               ${{ steps.format-issues.outputs.issues-table }}
 
-              ## Repositories
-              ${{ steps.checkout-hackers-web.outputs.commit-url}}
-              ${{ steps.checkout-hackers-auth.outputs.commit-url}}
-              ${{ steps.checkout-hackers-api.outputs.commit-url}}
             format: MARKDOWN
