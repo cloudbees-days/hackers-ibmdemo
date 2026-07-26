@@ -8,55 +8,110 @@ on:
       - '**'
 
 jobs:
-    gather-evidence:
-      outputs:
-        issues: ${{ steps.get-issues.outputs.issues }}
-        total: ${{ steps.get-issues.outputs.total }}
-        issues-table: ${{ steps.format-issues.outputs.issues-table }}
-      steps:
-        - uses: https://github.com/cloudbees-days/jira-get-issues@v1
-          id: get-issues
-          name: Get Jira Tickets
-          with:
-            jira-url: ${{ secrets.JIRA_URL }}
-            jira-username: ${{ secrets.JIRA_USERNAME }}
-            jira-token: ${{ secrets.JIRA_TOKEN }}
-            jql: project = "UDEMO" AND status != "Done" ORDER BY created DESC
-            fields: summary,status,assignee,created
-            max-results: "20"
-        - name: Format issues as table
-          uses: docker://alpine:3.19
-          id: format-issues
-          run: >
-            # Install jq for JSON parsing
+  create-release-issue:
+    outputs:
+      issue-key: ${{ steps.create-release-issue.outputs.issue-key }}
+      issue-url: ${{ steps.create-release-issue.outputs.issue-url }}
+    steps:
+      - uses: https://github.com/cloudbees-days/jira-create-issue
+        id: create-release-issue
+        with:
+          jira-url: ${{ secrets.JIRA_URL }}
+          jira-username: ${{ secrets.JIRA_USERNAME }}
+          jira-token: ${{ secrets.JIRA_TOKEN }}
+          project-key: UDEMO
+          issue-type: Task
+          issue-fields: >
+            summary: "Release ${{ cloudbees.scm.repository}} #${{
+            cloudbees.run_number }}"
 
-            apk add --no-cache jq
-
-
-            # Create markdown table from JSON
-
-            echo 'issues-table<<EOF' >> $CLOUDBEES_OUTPUTS/issues-table
-
-            echo '| Key | Summary | Status | Priority |' >>
-            $CLOUDBEES_OUTPUTS/issues-table
-
-            echo '|-----|---------|--------|----------|' >>
-            $CLOUDBEES_OUTPUTS/issues-table
+            description: |
+              Initializing release of ${{ cloudbees.scm.repository}} #${{ cloudbees.run_number }}
+      - name: Report release issue creation
+        uses: cloudbees-io/publish-evidence-item@v1
+        with:
+          content: >-
+            ## Release Issue Created
 
 
-            # Parse JSON and format as table rows
+            **Release Issue:** ${{ steps.create-release-issue.outputs.issue-key
+            }}
 
-            echo '${{ steps.get-issues.outputs.issues }}' | jq -r '.[] |
-              "| " + .key + " | " + .fields.summary + " | " + .fields.status.name + " | " + .fields.priority.name + " |"' >> $CLOUDBEES_OUTPUTS/issues-table
+            **URL:** ${{ steps.create-release-issue.outputs.issue-url }}
+          format: MARKDOWN
+  gather-evidence:
+    needs:
+      - create-release-issue
+    outputs:
+      issues: ${{ steps.get-issues.outputs.issues }}
+      total: ${{ steps.get-issues.outputs.total }}
+      issues-table: ${{ steps.format-issues.outputs.issues-table }}
+    steps:
+      - uses: https://github.com/cloudbees-days/jira-get-issues
+        id: get-issues
+        name: Get Jira Tickets
+        with:
+          jira-url: ${{ secrets.JIRA_URL }}
+          jira-username: ${{ secrets.JIRA_USERNAME }}
+          jira-token: ${{ secrets.JIRA_TOKEN }}
+          jql: project = "UDEMO" AND status != "Done" ORDER BY created DESC
+          fields: summary,status,assignee,created
+          max-results: "20"
+      - uses: https://github.com/cloudbees-io/checkout@v1
+        name: Checkout Hackers Web
+        id: checkout-hackers-web
+        with:
+          repository: TARGET_ORG/PROJECT_NAME-web
+      - uses: https://github.com/cloudbees-io/checkout@v1
+        name: Checkout Hackers Auth
+        id: checkout-hackers-auth
+        with:
+          repository: TARGET_ORG/PROJECT_NAME-auth
+      - uses: https://github.com/cloudbees-io/checkout@v1
+        name: Checkout Hackers API
+        id: checkout-hackers-api
+        with:
+          repository: TARGET_ORG/PROJECT_NAME-api
+      - name: Format issues as table
+        uses: docker://alpine:3.19
+        id: format-issues
+        run: >
+          # Install jq for JSON parsing
 
-            echo 'EOF' >> $CLOUDBEES_OUTPUTS/issues-table
-        - name: Report evidence
-          uses: cloudbees-io/publish-evidence-item@v1
-          with:
-            content: |
-              # Evidence report
+          apk add --no-cache jq
 
-              ## Jira Tickets
-              ${{ steps.format-issues.outputs.issues-table }}
 
-            format: MARKDOWN
+          # Create markdown table from JSON
+
+          echo 'issues-table<<EOF' >> $CLOUDBEES_OUTPUTS/issues-table
+
+          echo '| Key | Summary | Status | Priority |' >>
+          $CLOUDBEES_OUTPUTS/issues-table
+
+          echo '|-----|---------|--------|----------|' >>
+          $CLOUDBEES_OUTPUTS/issues-table
+
+
+          # Parse JSON and format as table rows
+
+          echo '${{ steps.get-issues.outputs.issues }}' | jq -r '.[] |
+            "| " + .key + " | " + .fields.summary + " | " + .fields.status.name + " | " + .fields.priority.name + " |"' >> $CLOUDBEES_OUTPUTS/issues-table
+
+          echo 'EOF' >> $CLOUDBEES_OUTPUTS/issues-table
+      - name: Report evidence
+        uses: cloudbees-io/publish-evidence-item@v1
+        with:
+          content: |
+            # Evidence report
+            ## Release Issue
+            ${{ needs.create-release-issue.outputs.issue-key }}
+            ${{ needs.create-release-issue.outputs.issue-url }}
+
+            ## Jira Tickets
+            ${{ steps.format-issues.outputs.issues-table }}
+
+            ## Repositories
+            ${{ steps.checkout-hackers-web.outputs.commit-url}}
+            ${{ steps.checkout-hackers-auth.outputs.commit-url}}
+            ${{ steps.checkout-hackers-api.outputs.commit-url}}
+          format: MARKDOWN
