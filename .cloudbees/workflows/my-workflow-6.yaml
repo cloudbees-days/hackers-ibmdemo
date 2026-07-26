@@ -55,9 +55,6 @@ jobs:
           with:
             content: |
               # Evidence report
-              ## Release Issue
-              ${{ needs.create-release-issue.outputs.issue-key }}
-              ${{ needs.create-release-issue.outputs.issue-url }}
 
               ## Jira Tickets
               ${{ steps.format-issues.outputs.issues-table }}
