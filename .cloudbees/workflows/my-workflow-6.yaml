@@ -1,12 +1,8 @@
 apiVersion: automation.cloudbees.io/v1alpha1
 kind: workflow
 name: My workflow 6
-
 on:
-  push:
-    branches:
-      - '**'
-
+  workflow_dispatch:
 jobs:
   create-release-issue:
     outputs:
@@ -21,22 +17,17 @@ jobs:
           jira-token: ${{ secrets.JIRA_TOKEN }}
           project-key: UDEMO
           issue-type: Task
-          issue-fields: >
-            summary: "Release ${{ cloudbees.scm.repository}} #${{
-            cloudbees.run_number }}"
-
+          issue-fields: |
+            summary: "Release ${{ cloudbees.scm.repository}} #${{ cloudbees.run_number }}"
             description: |
               Initializing release of ${{ cloudbees.scm.repository}} #${{ cloudbees.run_number }}
       - name: Report release issue creation
         uses: cloudbees-io/publish-evidence-item@v1
         with:
-          content: >-
+          content: |-
             ## Release Issue Created
 
-
-            **Release Issue:** ${{ steps.create-release-issue.outputs.issue-key
-            }}
-
+            **Release Issue:** ${{ steps.create-release-issue.outputs.issue-key }}
             **URL:** ${{ steps.create-release-issue.outputs.issue-url }}
           format: MARKDOWN
   gather-evidence:
@@ -75,25 +66,16 @@ jobs:
       - name: Format issues as table
         uses: docker://alpine:3.19
         id: format-issues
-        run: >
+        run: |
           # Install jq for JSON parsing
-
           apk add --no-cache jq
 
-
           # Create markdown table from JSON
-
           echo 'issues-table<<EOF' >> $CLOUDBEES_OUTPUTS/issues-table
-
-          echo '| Key | Summary | Status | Priority |' >>
-          $CLOUDBEES_OUTPUTS/issues-table
-
-          echo '|-----|---------|--------|----------|' >>
-          $CLOUDBEES_OUTPUTS/issues-table
-
+          echo '| Key | Summary | Status | Priority |' >> $CLOUDBEES_OUTPUTS/issues-table
+          echo '|-----|---------|--------|----------|' >> $CLOUDBEES_OUTPUTS/issues-table
 
           # Parse JSON and format as table rows
-
           echo '${{ steps.get-issues.outputs.issues }}' | jq -r '.[] |
             "| " + .key + " | " + .fields.summary + " | " + .fields.status.name + " | " + .fields.priority.name + " |"' >> $CLOUDBEES_OUTPUTS/issues-table
 
