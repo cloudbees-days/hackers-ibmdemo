@@ -5,22 +5,19 @@ on:
   workflow_dispatch:
 jobs:
   create-release-issue:
-    outputs:
-      issue-key: ${{ steps.create-release-issue.outputs.issue-key }}
-      issue-url: ${{ steps.create-release-issue.outputs.issue-url }}
     steps:
-      - uses: https://github.com/cloudbees-days/jira-create-issue
-        id: create-release-issue
-        with:
+      - with:
           jira-url: ${{ secrets.JIRA_URL }}
           jira-username: ${{ secrets.JIRA_USERNAME }}
           jira-token: ${{ secrets.JIRA_TOKEN }}
-          project-key: UDEMO
+          project-key: CBDEMO
           issue-type: Task
           issue-fields: |
             summary: "Release ${{ cloudbees.scm.repository}} #${{ cloudbees.run_number }}"
             description: |
               Initializing release of ${{ cloudbees.scm.repository}} #${{ cloudbees.run_number }}
+        uses: https://github.com/cloudbees-days/jira-create-issue
+        id: create-release-issue
       - name: Report release issue creation
         uses: cloudbees-io/publish-evidence-item@v1
         with:
@@ -30,36 +27,33 @@ jobs:
             **Release Issue:** ${{ steps.create-release-issue.outputs.issue-key }}
             **URL:** ${{ steps.create-release-issue.outputs.issue-url }}
           format: MARKDOWN
-  gather-evidence:
-    needs:
-      - create-release-issue
     outputs:
-      issues: ${{ steps.get-issues.outputs.issues }}
-      total: ${{ steps.get-issues.outputs.total }}
-      issues-table: ${{ steps.format-issues.outputs.issues-table }}
+      issue-key: ${{ steps.create-release-issue.outputs.issue-key }}
+      issue-url: ${{ steps.create-release-issue.outputs.issue-url }}
+  gather-evidence:
     steps:
-      - uses: https://github.com/cloudbees-days/jira-get-issues
-        id: get-issues
-        name: Get Jira Tickets
+      - name: Get Jira Tickets
         with:
           jira-url: ${{ secrets.JIRA_URL }}
           jira-username: ${{ secrets.JIRA_USERNAME }}
           jira-token: ${{ secrets.JIRA_TOKEN }}
-          jql: project = "UDEMO" AND status != "Done" ORDER BY created DESC
+          jql: project = "CBDEMO" AND status != "Done" ORDER BY created DESC
           fields: summary,status,assignee,created
           max-results: "20"
-      - uses: https://github.com/cloudbees-io/checkout@v1
-        name: Checkout Hackers Web
-        id: checkout-hackers-web
+        uses: https://github.com/cloudbees-days/jira-get-issues
+        id: get-issues
+      - name: Checkout Hackers Web
         with:
           repository: TARGET_ORG/PROJECT_NAME-web
-      - uses: https://github.com/cloudbees-io/checkout@v1
-        name: Checkout Hackers Auth
+        uses: https://github.com/cloudbees-io/checkout@v1
+        id: checkout-hackers-web
+      - name: Checkout Hackers Auth
+        uses: https://github.com/cloudbees-io/checkout@v1
         id: checkout-hackers-auth
         with:
           repository: TARGET_ORG/PROJECT_NAME-auth
-      - uses: https://github.com/cloudbees-io/checkout@v1
-        name: Checkout Hackers API
+      - name: Checkout Hackers API
+        uses: https://github.com/cloudbees-io/checkout@v1
         id: checkout-hackers-api
         with:
           repository: TARGET_ORG/PROJECT_NAME-api
@@ -97,3 +91,9 @@ jobs:
             ${{ steps.checkout-hackers-auth.outputs.commit-url}}
             ${{ steps.checkout-hackers-api.outputs.commit-url}}
           format: MARKDOWN
+    needs:
+      - create-release-issue
+    outputs:
+      issues: ${{ steps.get-issues.outputs.issues }}
+      total: ${{ steps.get-issues.outputs.total }}
+      issues-table: ${{ steps.format-issues.outputs.issues-table }}
