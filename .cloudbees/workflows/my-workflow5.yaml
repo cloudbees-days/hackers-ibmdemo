@@ -20,7 +20,7 @@ jobs:
       - name: Get source code
         uses: cloudbees-io/checkout@v1
         continue-on-error: true
-      - name: Run unit tests
+      - name: Run tests
         kind: test
         id: RunUnitTest
         uses: docker://node:lts
@@ -91,17 +91,17 @@ jobs:
     needs: compile-test
     outputs:
       ARTIFACT_ID: ${{ steps.register-artifact.outputs.artifact-id }}
-  deploy-sit : 
-    needs: build-image
+  deploy-sit:
     environment: DOW SIT
     steps:
       - name: Checkout
         uses: cloudbees-io/checkout@v1
-      - uses: cashokannamalai/kubeconfig@v1
-        name: Set kubeconfig
+      - name: Set kubeconfig
+        uses: cashokannamalai/kubeconfig@v1
         with:
           secname: ${{ secrets.kubeconfig }}
       - name: Deploy to SIT cluster
+        kind: deploy
         uses: cloudbees-io/jenkins-run-job@v2
         continue-on-error: true
         with:
@@ -111,7 +111,7 @@ jobs:
           job-name: WesTestJob2
       - name: Publish evidence
         uses: cloudbees-io/publish-evidence-item@v1
-        with: 
+        with:
           content: |-
             ## Deployed environment
             [SIT frontend](https://hackers.hackers-staging.preview.cb-demos.io/)
@@ -124,6 +124,7 @@ jobs:
         with:
           artifact-id: ${{ needs.build-image.outputs.ARTIFACT_ID }}
           target-environment: DOW SIT
+    needs: build-image
   approve-uat-deployment:
     needs: deploy-sit
     timeout-minutes: 4320
@@ -138,11 +139,12 @@ jobs:
     steps:
       - name: Checkout
         uses: cloudbees-io/checkout@v1
-      - uses: cashokannamalai/kubeconfig@v1
-        name: Set kubeconfig
+      - name: Set kubeconfig
+        uses: cashokannamalai/kubeconfig@v1
         with:
           secname: ${{ secrets.kubeconfig }}
       - name: Deploy to UAT cluster
+        kind: deploy
         uses: cloudbees-io/jenkins-run-job@v2
         continue-on-error: true
         with:
@@ -152,7 +154,7 @@ jobs:
           job-name: WesTestJob3
       - name: Publish evidence
         uses: cloudbees-io/publish-evidence-item@v1
-        with: 
+        with:
           content: |-
             ## Deployed environment
             [UAT frontend](https://hackers.hackers-qa.preview.cb-demos.io/)
